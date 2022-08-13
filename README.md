@@ -5,8 +5,8 @@ Showcase monitoring memory and disk usage by install CloudWatch agent through Cl
 
 ## Stress Test
 ```sh
-sudo amazon-linux-extras install epel
-sudo yum install stress-ng htop -y
+sudo amazon-linux-extras install -y epel
+sudo yum install -y stress-ng htop
 
 # Run all the stress tests in parallel, for one minute, with 1 instance of each being run: 
 sudo stress-ng --all 1 --timeout 1m
