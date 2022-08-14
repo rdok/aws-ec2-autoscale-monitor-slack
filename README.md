@@ -6,14 +6,14 @@ Showcase monitoring memory and disk usage by install CloudWatch agent through Cl
 ## Stress Test
 ```sh
 sudo amazon-linux-extras install -y epel
-sudo yum install -y stress-ng htop
+sudo yum install -y stress htop
 
-# Run all the stress tests in parallel, for one minute, with 1 instance of each being run: 
-# t3.medium 2 cpu, 4 GB
-sudo stress-ng --all 1 --timeout 2m
-
-stress-ng --cpu 2 --timeout 5m --metrics-brief
+# CPU, memory, and disk stress.
+ sudo stress --cpu 1 --vm-bytes $(awk '/MemAvailable/{printf "%d\n", $2 * 0.9;}' < /proc/meminfo)k --vm-keep -m 5
 ```
+
+### Notes
+- `stress-ng` memory test, although worked fine locally, it was not picked by CloudWatch logs. Instead use `stress` one. 
 
 ## Development
 - `make samconfig.toml` && customise as per you needs

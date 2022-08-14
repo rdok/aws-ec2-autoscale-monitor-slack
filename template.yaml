@@ -120,16 +120,14 @@ Resources:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles: [ !Ref CloudwatchAgentRole ]
-  CPUAlarm:
+  CPUUtilizationAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmDescription: >
         Alert when the average CPU utilization exceeds 90 percent for 1 minute
         over one evaluation period.
-      AlarmActions:
-        - Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn"
-      OKActions:
-        - Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn"
+      AlarmActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
+      OKActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
       MetricName: CPUUtilization
       Namespace: AWS/EC2
       Statistic: Average
@@ -137,6 +135,23 @@ Resources:
       EvaluationPeriods: '1'
       Threshold: '90'
       ComparisonOperator: GreaterThanThreshold
+      Dimensions: [ { Name: InstanceId, Value: !Ref EC2Instance } ]
+  MemoryUsedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: >
+        Alert when the percentage of memory use exceeds a threshold for an amount of time
+        over an amount of period(s).
+      AlarmActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
+      OKActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
+      Namespace: CWAgent
+      MetricName: mem_used_percent
+      Statistic: Average
+      Period: '60'
+      EvaluationPeriods: '1'
+      Threshold: '80'
+      ComparisonOperator: GreaterThanThreshold
       Dimensions:
-        - Name: InstanceId
-          Value: !Ref EC2Instance
+        - { Name: InstanceId, Value: !Ref EC2Instance }
+        - { Name: ImageId, Value: !Ref ImageId }
+        - { Name: InstanceType, Value: !Ref InstanceType }
