@@ -1,7 +1,7 @@
-# Monitor memory and disk usage
-Showcase monitoring EC2 memory, disk, and CPU usage using CloudWatch agent through CloudFormation. Alert through slack when any alarm goes in alert status.
+# Monitor memory, disk, and CPU usage
+> Monitor EC2 memory, disk, and CPU usage using CloudWatch agent through CloudFormation. Create dashboard with the metrics, and alert through slack when any alarm goes in alert status.
 
-![metrics](./metrics.png "Stress Results")
+![dashboard](./dashboard.png "Dashboard")
 
 ## Stress Test
 ```sh

@@ -5,6 +5,7 @@ Parameters:
   KeyName: { Type: AWS::EC2::KeyPair::KeyName }
   ImageId: { Type: AWS::EC2::Image::Id }
   AwsChatbotStackName: { Type: String }
+  Name: { Type: String, Default: 'monitor-memory-disk-cpu-usage' }
 Resources:
   EC2Instance:
     Type: AWS::EC2::Instance
@@ -177,3 +178,44 @@ Resources:
         - { Name: InstanceType, Value: !Ref InstanceType }
         - { Name: device, Value: nvme0n1p1 }
         - { Name: fstype, Value: xfs }
+  AlarmsDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: 'monitor-memory-disk-cpu-usage'
+      # https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/CloudWatch-Dashboard-Body-Structure.html
+      DashboardBody: !Sub |
+        {
+           "widgets": [
+              {
+                 "type":"metric",
+                 "width":24,
+                 "height":8,
+                 "properties":{
+                    "metrics":[ 
+                      [ "AWS/EC2", "CPUUtilization", "InstanceId", "${EC2Instance}", {"label": "CPU Utilization"} ],
+                      [
+                        "CWAgent", "mem_used_percent",
+                        "InstanceId", "${EC2Instance}" ,
+                        "ImageId", "${ImageId}",
+                        "InstanceType", "${InstanceType}",
+                        {"label": "Memory Used Percent" }
+                      ],
+                      [
+                        "CWAgent", "disk_used_percent",
+                        "path", "/" ,
+                        "InstanceId", "${EC2Instance}",
+                        "ImageId", "${ImageId}",
+                        "InstanceType", "${InstanceType}",
+                        "device", "nvme0n1p1",
+                        "fstype", "xfs",
+                        {"label": "Disk Used Percent" }
+                      ]
+                    ],
+                    "period":300,
+                    "stat":"Average",
+                    "region":"${AWS::Region}",
+                    "title":"${Name}"
+                 }
+              }
+           ]
+        }
