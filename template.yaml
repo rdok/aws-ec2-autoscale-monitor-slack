@@ -4,6 +4,7 @@ Parameters:
   InstanceType: { Type: String }
   KeyName: { Type: AWS::EC2::KeyPair::KeyName }
   ImageId: { Type: AWS::EC2::Image::Id }
+  AwsChatbotStackName: { Type: String }
 Resources:
   EC2Instance:
     Type: AWS::EC2::Instance
@@ -115,8 +116,27 @@ Resources:
             Action: [ "sts:AssumeRole" ]
             Principal:
               Service: [ "ec2.amazonaws.com" ]
-
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles: [ !Ref CloudwatchAgentRole ]
+  CPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: >
+        Alert when the average CPU utilization exceeds 90 percent for 3 minutes
+        over three evaluation periods.
+      AlarmActions:
+        - Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn"
+      OKActions:
+        - Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn"
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: '60'
+      EvaluationPeriods: '3'
+      Threshold: '90'
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref EC2Instance

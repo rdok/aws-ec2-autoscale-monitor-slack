@@ -9,7 +9,10 @@ sudo amazon-linux-extras install -y epel
 sudo yum install -y stress-ng htop
 
 # Run all the stress tests in parallel, for one minute, with 1 instance of each being run: 
-sudo stress-ng --all 1 --timeout 1m
+# t3.medium 2 cpu, 4 GB
+sudo stress-ng --all 1 --timeout 2m
+
+stress-ng --cpu 2 --timeout 5m --metrics-brief
 ```
 
 ## Development
