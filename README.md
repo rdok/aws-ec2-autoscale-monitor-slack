@@ -1,5 +1,5 @@
 # Monitor memory and disk usage
-Showcase monitoring memory and disk usage by install CloudWatch agent through CloudFormation on an EC2.
+Showcase monitoring memory and disk usage by install CloudWatch agent through CloudFormation on an EC2. Alert through slack when any usage goes above a threshold.
 
 ![metrics](./metrics.png "Stress Results")
 
