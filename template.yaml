@@ -136,11 +136,11 @@ Resources:
       Threshold: '80'
       ComparisonOperator: GreaterThanThreshold
       Dimensions: [ { Name: InstanceId, Value: !Ref EC2Instance } ]
-  MemoryUsedAlarm:
+  MemoryUsageAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmDescription: >
-        Alert when the percentage of memory use exceeds a threshold for an amount of time
+        Alert when the memory usage percentage exceeds a threshold for an amount of time
         over an amount of period(s).
       AlarmActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
       OKActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
@@ -155,3 +155,25 @@ Resources:
         - { Name: InstanceId, Value: !Ref EC2Instance }
         - { Name: ImageId, Value: !Ref ImageId }
         - { Name: InstanceType, Value: !Ref InstanceType }
+  DiskUsageAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: >
+        Alert when the disk usage percentage exceeds a threshold for an amount of time
+        over an amount of period(s).
+      AlarmActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
+      OKActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
+      Namespace: CWAgent
+      MetricName: disk_used_percent
+      Statistic: Average
+      Period: '60'
+      EvaluationPeriods: '1'
+      Threshold: '80'
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - { Name: path, Value: '/' }
+        - { Name: InstanceId, Value: !Ref EC2Instance }
+        - { Name: ImageId, Value: !Ref ImageId }
+        - { Name: InstanceType, Value: !Ref InstanceType }
+        - { Name: device, Value: nvme0n1p1 }
+        - { Name: fstype, Value: xfs }
