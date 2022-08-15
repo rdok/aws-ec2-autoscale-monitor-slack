@@ -1,5 +1,5 @@
-# Monitor memory, disk, and CPU usage
-> Monitor EC2 memory, disk, and CPU usage using CloudWatch agent through CloudFormation. Create dashboard with the metrics, and alert through slack when any alarm goes in alert status.
+# Monitor memory, disk, and CPU utilization
+> Monitor EC2 memory, disk, and CPU utilization using CloudWatch agent through CloudFormation. Create dashboard with the metrics, and alert through slack when any alarm goes in alert status.
 
 ![dashboard](./dashboard.png "Dashboard")
 
@@ -11,7 +11,7 @@ sudo yum install -y stress htop
 # CPU, and memory stress. t3.medium 2 CPU, 4GB memory
  sudo stress --cpu 2 --vm-bytes $(awk '/MemAvailable/{printf "%d\n", $2 * 0.9;}' < /proc/meminfo)k --vm-keep -m 5
  
- # Disk usage. 8GB disk
+ # Disk utilization. 8GB disk
 df -h
 dd if=/dev/urandom of=2GB.bin bs=64M count=32 iflag=fullblock
 dd if=/dev/urandom of=3GB.bin bs=64M count=48 iflag=fullblock
