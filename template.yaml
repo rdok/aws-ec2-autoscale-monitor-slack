@@ -220,6 +220,12 @@ Resources:
            ]
         }
 Outputs:
-  DashboardUrl:
-    Description: "On initialization wait for ~5 minutes until CloudWatch processes the live data metrics."
+  Dashboard:
+    Description: "Can take up to 10 minutes to load data on first run."
     Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${UtilizationDashboard}"
+  DiskUtilizationAlarm:
+    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#alarmsV2:alarm/${DiskUtilizationAlarm}"
+  MemoryUtilizationAlarm:
+    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#alarmsV2:alarm/${MemoryUtilizationAlarm}"
+  CPUUtilizationAlarm:
+    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#alarmsV2:alarm/${CPUUtilizationAlarm}"
