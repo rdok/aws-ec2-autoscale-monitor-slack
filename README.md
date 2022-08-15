@@ -18,9 +18,6 @@ dd if=/dev/urandom of=3GB.bin bs=64M count=48 iflag=fullblock
 df -h
 ```
 
-### Notes
-- `stress-ng` memory test, although worked fine locally, it was not picked by CloudWatch logs. Instead use `stress` one. 
-
 ## Development
 - `make samconfig.toml` && customise as per you needs
 - `make deploy`
@@ -30,6 +27,4 @@ df -h
 [Install CloudWatch Agent](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Install-CloudWatch-Agent.html)  
 [Metrics collected by the CloudWatch agent on Linux instances](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/metrics-collected-by-CloudWatch-agent.html#linux-metrics-enabled-by-CloudWatch-agent)  
 [Inline CloudFormation Template](https://github.com/awslabs/aws-cloudformation-templates/blob/master/aws/solutions/AmazonCloudWatchAgent/inline/amazon_linux.template)
-
-## TODO
-Automate dashboard containing the alarms created for CPU, Memory, and Disk usage.
+[Dashboard Body Structure](https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/CloudWatch-Dashboard-Body-Structure.html)
