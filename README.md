@@ -18,6 +18,9 @@ dd if=/dev/urandom of=3GB.bin bs=64M count=48 iflag=fullblock
 df -h
 ```
 
+## Slack
+![slack](./slack.png "Slack")
+
 ## Development
 - `make samconfig.toml` && customise as per you needs
 - `make deploy`
