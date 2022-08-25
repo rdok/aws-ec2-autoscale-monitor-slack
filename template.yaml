@@ -1,9 +1,8 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Parameters:
-  InstanceType: { Type: String }
-  KeyName: { Type: AWS::EC2::KeyPair::KeyName }
-  ImageId: { Type: AWS::EC2::Image::Id }
+  InstanceType: { Type: String, Default: t3.medium }
+  ImageId: { Type: AWS::EC2::Image::Id, Default: ami-089950bc622d39ed8 }
   AwsChatbotStackName: { Type: String }
   Name: { Type: String, Default: 'monitor-memory-disk-cpu-utilization' }
 Resources:
@@ -20,38 +19,56 @@ Resources:
             Principal: { Service: [ "ec2.amazonaws.com" ] }
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
-    Properties:
-      Roles: [ !Ref CloudwatchAgentRole ]
+    Properties: { Roles: [ !Ref CloudwatchAgentRole ] }
   VPC:
     Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: "10.0.0.0/16"
-      Tags:
-        - { Key: Name, Value: !Ref AWS::StackName }
+      CidrBlock: 10.0.0.0/16
+      Tags: [ { Key: Name, Value: !Ref AWS::StackName } ]
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: { InternetGatewayId: !Ref InternetGateway, VpcId: !Ref VPC }
+  InternetRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties: { VpcId: !Ref VPC }
   Subnet1a:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
       CidrBlock: 10.0.0.0/24
-      AvailabilityZone: "eu-west-1a"
+      AvailabilityZone: eu-west-1a
+      MapPublicIpOnLaunch: true
+  Subnet1aRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: { RouteTableId: !Ref RouteTable, SubnetId: !Ref Subnet1a }
   Subnet1b:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
       CidrBlock: 10.0.1.0/24
-      AvailabilityZone: "eu-west-1b"
+      AvailabilityZone: eu-west-1b
+      MapPublicIpOnLaunch: true
+  Subnet1bRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: { RouteTableId: !Ref RouteTable, SubnetId: !Ref Subnet1b }
   LaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
-      AssociatePublicIpAddress: true
-      KeyName: !Ref KeyName
       InstanceType: !Ref InstanceType
       ImageId: !Ref ImageId
       IamInstanceProfile: !Ref InstanceProfile
-      SecurityGroups: [ !Ref SecurityGroup ]
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
+          echo -e -n "secret\nsecret" | sudo passwd ec2-user
           rpm -Uvh https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
           /opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource AutoScalingGroup --region ${AWS::Region} --configsets default
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource AutoScalingGroup --region ${AWS::Region}
@@ -135,27 +152,11 @@ Resources:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       LaunchConfigurationName: !Ref LaunchConfiguration
-      MinSize: 1
+      MinSize: 2
       MaxSize: 6
-      DesiredCapacity: 1
+      DesiredCapacity: 2
       VPCZoneIdentifier: [ !Ref Subnet1a, !Ref Subnet1b ]
-      Tags:
-        - { Key: Name, Value: !Ref AWS::StackName, PropagateAtLaunch: true }
-  SecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: !Ref AWS::StackName
-      VpcId: !Ref VPC
-      SecurityGroupIngress: [ { IpProtocol: tcp, FromPort: 22, ToPort: 22, CidrIp: 0.0.0.0/0 } ]
-      SecurityGroupEgress: [ { IpProtocol: "-1", FromPort: 0, ToPort: 0, CidrIp: "0.0.0.0/0" } ]
-  SecurityGroupIngress:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      IpProtocol: -1
-      FromPort: 0
-      ToPort: 65535
-      SourceSecurityGroupId: !Sub ${SecurityGroup.GroupId}
-      GroupId: !Sub ${SecurityGroup.GroupId}
+      Tags: [ { Key: Name, Value: !Ref AWS::StackName, PropagateAtLaunch: true } ]
 #  CPUUtilizationAlarm:
 #    Type: AWS::CloudWatch::Alarm
 #    Properties:

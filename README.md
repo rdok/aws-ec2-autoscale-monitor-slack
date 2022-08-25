@@ -3,6 +3,11 @@
 
 ![dashboard](./dashboard.png "Dashboard")
 
+## Debug
+Use the EC2 serial console to connect the instance. 
+
+The password is set to `secret` from the `UserData`. This is set ONLY for debugging purposes, so do we remove this command before using it on production.
+
 ## Stress Test
 ```sh
 sudo amazon-linux-extras install -y epel
