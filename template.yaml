@@ -70,7 +70,7 @@ Resources:
           #!/bin/bash
           echo -e -n "secret\nsecret" | sudo passwd ec2-user
           rpm -Uvh https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
-          /opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource AutoScalingGroup --region ${AWS::Region} --configsets default
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource LaunchConfiguration --region ${AWS::Region} --configsets default
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource AutoScalingGroup --region ${AWS::Region}
     CreationPolicy:
       ResourceSignal:
@@ -125,8 +125,8 @@ Resources:
               content: !Sub |
                 [cfn-auto-reloader-hook]
                 triggers=post.update
-                path=Resources.EC2Instance.Metadata.AWS::CloudFormation::Init.02_config-amazon-cloudwatch-agent
-                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource EC2Instance --region ${AWS::Region} --configsets UpdateEnvironment
+                path=Resources.LaunchConfiguration.Metadata.AWS::CloudFormation::Init.02_config-amazon-cloudwatch-agent
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource LaunchConfiguration --region ${AWS::Region} --configsets UpdateEnvironment
                 runas=root
               mode: '000400'
               owner: root
@@ -172,7 +172,7 @@ Resources:
 #      EvaluationPeriods: '1'
 #      Threshold: '80'
 #      ComparisonOperator: GreaterThanThreshold
-#      Dimensions: [ { Name: InstanceId, Value: !Ref EC2Instance } ]
+#      Dimensions: [ { Name: InstanceId, Value: !Ref LaunchConfiguration } ]
 #  MemoryUtilizationAlarm:
 #    Type: AWS::CloudWatch::Alarm
 #    Properties:
@@ -189,7 +189,7 @@ Resources:
 #      Threshold: '80'
 #      ComparisonOperator: GreaterThanThreshold
 #      Dimensions:
-#        - { Name: InstanceId, Value: !Ref EC2Instance }
+#        - { Name: InstanceId, Value: !Ref LaunchConfiguration }
 #        - { Name: ImageId, Value: !Ref ImageId }
 #        - { Name: InstanceType, Value: !Ref InstanceType }
 #  DiskUtilizationAlarm:
@@ -227,10 +227,10 @@ Resources:
 #                 "height":8,
 #                 "properties":{
 #                    "metrics":[
-#                      [ "AWS/EC2", "CPUUtilization", "InstanceId", "${EC2Instance}", {"label": "CPU Utilization"} ],
+#                      [ "AWS/EC2", "CPUUtilization", "InstanceId", "${LaunchConfiguration}", {"label": "CPU Utilization"} ],
 #                      [
 #                        "CWAgent", "mem_used_percent",
-#                        "InstanceId", "${EC2Instance}" ,
+#                        "InstanceId", "${LaunchConfiguration}" ,
 #                        "ImageId", "${ImageId}",
 #                        "InstanceType", "${InstanceType}",
 #                        {"label": "Memory Used Percent" }
@@ -238,7 +238,7 @@ Resources:
 #                      [
 #                        "CWAgent", "disk_used_percent",
 #                        "path", "/" ,
-#                        "InstanceId", "${EC2Instance}",
+#                        "InstanceId", "${LaunchConfiguration}",
 #                        "ImageId", "${ImageId}",
 #                        "InstanceType", "${InstanceType}",
 #                        "device", "nvme0n1p1",

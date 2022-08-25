@@ -6,7 +6,7 @@
 ## Debug
 Use the EC2 serial console to connect the instance. 
 
-The password is set to `secret` from the `UserData`. This is set ONLY for debugging purposes, so do we remove this command before using it on production.
+The password is set to `secret` from the `UserData`. This is set ONLY for debugging purposes, so do remove this command before using it on production.
 
 ## Stress Test
 ```sh
@@ -22,6 +22,12 @@ dd if=/dev/urandom of=2GB.bin bs=64M count=32 iflag=fullblock
 dd if=/dev/urandom of=3GB.bin bs=64M count=48 iflag=fullblock
 df -h
 ```
+
+## Debug
+- The subnets are public to keep the stack simple; the focus is to showcase memory, cpu utilization and the autoscaling.
+- Use the EC2 serial console to connect the instance.
+
+The password is set to `secret` from the `UserData`. This is set ONLY for debugging purposes, so do we remove this command before using it on production.
 
 ## Slack
 ![slack](./slack.png "Slack")
