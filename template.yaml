@@ -7,8 +7,56 @@ Parameters:
   AwsChatbotStackName: { Type: String }
   Name: { Type: String, Default: 'monitor-memory-disk-cpu-utilization' }
 Resources:
-  EC2Instance:
-    Type: AWS::EC2::Instance
+  CloudwatchAgentRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns: [ "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy" ]
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "AllowEC2ServiceToAssumeRole"
+            Effect: Allow
+            Action: [ "sts:AssumeRole" ]
+            Principal: { Service: [ "ec2.amazonaws.com" ] }
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [ !Ref CloudwatchAgentRole ]
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: "10.0.0.0/16"
+      Tags:
+        - { Key: Name, Value: !Ref AWS::StackName }
+  Subnet1a:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: "eu-west-1a"
+  Subnet1b:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: "eu-west-1b"
+  LaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      KeyName: !Ref KeyName
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref ImageId
+      IamInstanceProfile: !Ref InstanceProfile
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          rpm -Uvh https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource AutoScalingGroup --region ${AWS::Region} --configsets default
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource AutoScalingGroup --region ${AWS::Region}
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: "PT15M"
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
@@ -32,16 +80,8 @@ Resources:
                       "InstanceType": "${!aws:InstanceType}"
                     },
                     "metrics_collected": {
-                      "mem": {
-                        "measurement": [
-                          "mem_used_percent"
-                        ]
-                      },
-                      "disk": {
-                        "measurement": [
-                          "disk_used_percent"
-                        ]
-                      }
+                      "mem": { "measurement": [ "mem_used_percent" ] },
+                      "disk": { "measurement": [ "disk_used_percent" ] }
                     }
                   }
                 }
@@ -89,143 +129,120 @@ Resources:
             02start_cfn_hup:
               command: !Sub |
                 systemctl start cfn-hup.service
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      KeyName: !Ref KeyName
-      InstanceType: !Ref InstanceType
-      ImageId: !Ref ImageId
-      IamInstanceProfile: !Ref InstanceProfile
-      Monitoring: true
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash
-          rpm -Uvh https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
-          /opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource EC2Instance --region ${AWS::Region} --configsets default
-          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource EC2Instance --region ${AWS::Region}
-    CreationPolicy:
-      ResourceSignal:
-        Count: 1
-        Timeout: "PT15M"
-  CloudwatchAgentRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns: [ "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy" ]
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Sid: "AllowEC2ServiceToAssumeRole"
-            Effect: Allow
-            Action: [ "sts:AssumeRole" ]
-            Principal:
-              Service: [ "ec2.amazonaws.com" ]
-  InstanceProfile:
-    Type: AWS::IAM::InstanceProfile
-    Properties:
-      Roles: [ !Ref CloudwatchAgentRole ]
-  CPUUtilizationAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: >
-        Alert when the average CPU utilization exceeds 90 percent for 1 minute
-        over one evaluation period.
-      AlarmActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
-      OKActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
-      MetricName: CPUUtilization
-      Namespace: AWS/EC2
-      Statistic: Average
-      Period: '60'
-      EvaluationPeriods: '1'
-      Threshold: '80'
-      ComparisonOperator: GreaterThanThreshold
-      Dimensions: [ { Name: InstanceId, Value: !Ref EC2Instance } ]
-  MemoryUtilizationAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: >
-        Alert when the memory utilization percentage exceeds a threshold for an amount of time
-        over an amount of period(s).
-      AlarmActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
-      OKActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
-      Namespace: CWAgent
-      MetricName: mem_used_percent
-      Statistic: Average
-      Period: '60'
-      EvaluationPeriods: '1'
-      Threshold: '80'
-      ComparisonOperator: GreaterThanThreshold
-      Dimensions:
-        - { Name: InstanceId, Value: !Ref EC2Instance }
-        - { Name: ImageId, Value: !Ref ImageId }
-        - { Name: InstanceType, Value: !Ref InstanceType }
-  DiskUtilizationAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: >
-        Alert when the disk utilization percentage exceeds a threshold for an amount of time
-        over an amount of period(s).
-      AlarmActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
-      OKActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
-      Namespace: CWAgent
-      MetricName: disk_used_percent
-      Statistic: Average
-      Period: '60'
-      EvaluationPeriods: '1'
-      Threshold: '80'
-      ComparisonOperator: GreaterThanThreshold
-      Dimensions:
-        - { Name: path, Value: '/' }
-        - { Name: InstanceId, Value: !Ref EC2Instance }
-        - { Name: ImageId, Value: !Ref ImageId }
-        - { Name: InstanceType, Value: !Ref InstanceType }
-        - { Name: device, Value: nvme0n1p1 }
-        - { Name: fstype, Value: xfs }
-  UtilizationDashboard:
-    Type: AWS::CloudWatch::Dashboard
-    Properties:
-      # https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/CloudWatch-Dashboard-Body-Structure.html
-      DashboardBody: !Sub |
-        {
-           "widgets": [
-              {
-                 "type":"metric",
-                 "width":24,
-                 "height":8,
-                 "properties":{
-                    "metrics":[ 
-                      [ "AWS/EC2", "CPUUtilization", "InstanceId", "${EC2Instance}", {"label": "CPU Utilization"} ],
-                      [
-                        "CWAgent", "mem_used_percent",
-                        "InstanceId", "${EC2Instance}" ,
-                        "ImageId", "${ImageId}",
-                        "InstanceType", "${InstanceType}",
-                        {"label": "Memory Used Percent" }
-                      ],
-                      [
-                        "CWAgent", "disk_used_percent",
-                        "path", "/" ,
-                        "InstanceId", "${EC2Instance}",
-                        "ImageId", "${ImageId}",
-                        "InstanceType", "${InstanceType}",
-                        "device", "nvme0n1p1",
-                        "fstype", "xfs",
-                        {"label": "Disk Used Percent" }
-                      ]
-                    ],
-                    "period":300,
-                    "stat":"Average",
-                    "region":"${AWS::Region}",
-                    "title":"${Name}",
-                    "liveData": false
-                 }
-              }
-           ]
-        }
-Outputs:
-  Dashboard:
-    Description: "Can take up to 10 minutes to load data on first run."
-    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${UtilizationDashboard}"
-  DiskUtilizationAlarm:
-    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#alarmsV2:alarm/${DiskUtilizationAlarm}"
-  MemoryUtilizationAlarm:
-    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#alarmsV2:alarm/${MemoryUtilizationAlarm}"
-  CPUUtilizationAlarm:
-    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#alarmsV2:alarm/${CPUUtilizationAlarm}"
+      LaunchConfigurationName: !Ref LaunchConfiguration
+      MinSize: 1
+      MaxSize: 6
+      DesiredCapacity: 1
+      VPCZoneIdentifier: [ !Ref Subnet1a, !Ref Subnet1b ]
+#  CPUUtilizationAlarm:
+#    Type: AWS::CloudWatch::Alarm
+#    Properties:
+#      AlarmDescription: >
+#        Alert when the average CPU utilization exceeds 90 percent for 1 minute
+#        over one evaluation period.
+#      AlarmActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
+#      OKActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
+#      MetricName: CPUUtilization
+#      Namespace: AWS/EC2
+#      Statistic: Average
+#      Period: '60'
+#      EvaluationPeriods: '1'
+#      Threshold: '80'
+#      ComparisonOperator: GreaterThanThreshold
+#      Dimensions: [ { Name: InstanceId, Value: !Ref EC2Instance } ]
+#  MemoryUtilizationAlarm:
+#    Type: AWS::CloudWatch::Alarm
+#    Properties:
+#      AlarmDescription: >
+#        Alert when the memory utilization percentage exceeds a threshold for an amount of time
+#        over an amount of period(s).
+#      AlarmActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
+#      OKActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
+#      Namespace: CWAgent
+#      MetricName: mem_used_percent
+#      Statistic: Average
+#      Period: '60'
+#      EvaluationPeriods: '1'
+#      Threshold: '80'
+#      ComparisonOperator: GreaterThanThreshold
+#      Dimensions:
+#        - { Name: InstanceId, Value: !Ref EC2Instance }
+#        - { Name: ImageId, Value: !Ref ImageId }
+#        - { Name: InstanceType, Value: !Ref InstanceType }
+#  DiskUtilizationAlarm:
+#    Type: AWS::CloudWatch::Alarm
+#    Properties:
+#      AlarmDescription: >
+#        Alert when the disk utilization percentage exceeds a threshold for an amount of time
+#        over an amount of period(s).
+#      AlarmActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
+#      OKActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
+#      Namespace: CWAgent
+#      MetricName: disk_used_percent
+#      Statistic: Average
+#      Period: '60'
+#      EvaluationPeriods: '1'
+#      Threshold: '80'
+#      ComparisonOperator: GreaterThanThreshold
+#      Dimensions:
+#        - { Name: path, Value: '/' }
+#        - { Name: InstanceId, Value: !Ref AutoScalingGroup }
+#        - { Name: ImageId, Value: !Ref ImageId }
+#        - { Name: InstanceType, Value: !Ref InstanceType }
+#        - { Name: device, Value: nvme0n1p1 }
+#        - { Name: fstype, Value: xfs }
+#  UtilizationDashboard:
+#    Type: AWS::CloudWatch::Dashboard
+#    Properties:
+#      # https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/CloudWatch-Dashboard-Body-Structure.html
+#      DashboardBody: !Sub |
+#        {
+#           "widgets": [
+#              {
+#                 "type":"metric",
+#                 "width":24,
+#                 "height":8,
+#                 "properties":{
+#                    "metrics":[
+#                      [ "AWS/EC2", "CPUUtilization", "InstanceId", "${EC2Instance}", {"label": "CPU Utilization"} ],
+#                      [
+#                        "CWAgent", "mem_used_percent",
+#                        "InstanceId", "${EC2Instance}" ,
+#                        "ImageId", "${ImageId}",
+#                        "InstanceType", "${InstanceType}",
+#                        {"label": "Memory Used Percent" }
+#                      ],
+#                      [
+#                        "CWAgent", "disk_used_percent",
+#                        "path", "/" ,
+#                        "InstanceId", "${EC2Instance}",
+#                        "ImageId", "${ImageId}",
+#                        "InstanceType", "${InstanceType}",
+#                        "device", "nvme0n1p1",
+#                        "fstype", "xfs",
+#                        {"label": "Disk Used Percent" }
+#                      ]
+#                    ],
+#                    "period":300,
+#                    "stat":"Average",
+#                    "region":"${AWS::Region}",
+#                    "title":"${Name}",
+#                    "liveData": false
+#                 }
+#              }
+#           ]
+#        }
+#
+#Outputs:
+#  Dashboard:
+#    Description: "Can take up to 10 minutes to load data on first run."
+#    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${UtilizationDashboard}"
+#  DiskUtilizationAlarm:
+#    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#alarmsV2:alarm/${DiskUtilizationAlarm}"
+#  MemoryUtilizationAlarm:
+#    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#alarmsV2:alarm/${MemoryUtilizationAlarm}"
+#  CPUUtilizationAlarm:
+#    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#alarmsV2:alarm/${CPUUtilizationAlarm}"
