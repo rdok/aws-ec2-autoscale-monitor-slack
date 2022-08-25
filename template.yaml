@@ -43,10 +43,12 @@ Resources:
   LaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
+      AssociatePublicIpAddress: true
       KeyName: !Ref KeyName
       InstanceType: !Ref InstanceType
       ImageId: !Ref ImageId
       IamInstanceProfile: !Ref InstanceProfile
+      SecurityGroups: [ !Ref SecurityGroup ]
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
@@ -74,7 +76,7 @@ Resources:
                 {
                   "metrics": {
                     "append_dimensions": {
-                      "AutoScalingGroupName": "${!aws:AutoScalingGroupName}",
+                      "AutoScalingGroupName": "${!aws:AutoScalingGroup}",
                       "ImageId": "${!aws:ImageId}",
                       "InstanceId": "${!aws:InstanceId}",
                       "InstanceType": "${!aws:InstanceType}"
@@ -137,6 +139,23 @@ Resources:
       MaxSize: 6
       DesiredCapacity: 1
       VPCZoneIdentifier: [ !Ref Subnet1a, !Ref Subnet1b ]
+      Tags:
+        - { Key: Name, Value: !Ref AWS::StackName, PropagateAtLaunch: true }
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Ref AWS::StackName
+      VpcId: !Ref VPC
+      SecurityGroupIngress: [ { IpProtocol: tcp, FromPort: 22, ToPort: 22, CidrIp: 0.0.0.0/0 } ]
+      SecurityGroupEgress: [ { IpProtocol: "-1", FromPort: 0, ToPort: 0, CidrIp: "0.0.0.0/0" } ]
+  SecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: -1
+      FromPort: 0
+      ToPort: 65535
+      SourceSecurityGroupId: !Sub ${SecurityGroup.GroupId}
+      GroupId: !Sub ${SecurityGroup.GroupId}
 #  CPUUtilizationAlarm:
 #    Type: AWS::CloudWatch::Alarm
 #    Properties:
