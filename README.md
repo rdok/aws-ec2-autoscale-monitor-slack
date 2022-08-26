@@ -1,13 +1,10 @@
 # Monitor memory, disk, and CPU utilization
-> 1. Monitor EC2 memory, disk, and CPU utilization using CloudWatch agent through CloudFormation. Create dashboard with the metrics, and alert through slack when any alarm goes in alert status.
-> 2. Auto increase and decrease based on CPU and memory utilisation.
+> 1. Monitor EC2 memory, disk, and CPU utilization using CloudWatch agent. 
+> 2. Create dashboard with the metrics, and alert through slack when any alarm goes in alert status.
+> 3. Auto increase EC2 desired capacity, through CloudWatch alarm, when CPU **OR** memory utilisation is greater than a threshold.
+> 4. Auto decrease EC2 desired capacity, through CloudWatch alarm, when CPU **AND** memory utilisation is lower than a threshold.
 
 ![dashboard](./dashboard.png "Dashboard")
-
-## Debug
-Use the EC2 serial console to connect the instance. 
-
-The password is set to `secret` from the `UserData`. This is set ONLY for debugging purposes, so do remove this command before using it on production.
 
 ## Stress Test
 ```sh
@@ -31,7 +28,7 @@ df -h
 - The subnets are public to keep the stack simple; the focus is to showcase memory, cpu utilization and the autoscaling.
 - Use the EC2 serial console to connect the instance.
 
-The password is set to `secret` from the `UserData`. This is set ONLY for debugging purposes, so do we remove this command before using it on production.
+The EC2 password is set to `secret` from the `UserData`. This is set ONLY for debugging purposes, so do we remove this command before using it on production.
 
 ## Slack
 ![slack](./slack.png "Slack")
@@ -42,7 +39,9 @@ The password is set to `secret` from the `UserData`. This is set ONLY for debugg
 
 ## Sources
 
-[Install CloudWatch Agent](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Install-CloudWatch-Agent.html)  
-[Metrics collected by the CloudWatch agent on Linux instances](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/metrics-collected-by-CloudWatch-agent.html#linux-metrics-enabled-by-CloudWatch-agent)  
-[Inline CloudFormation Template](https://github.com/awslabs/aws-cloudformation-templates/blob/master/aws/solutions/AmazonCloudWatchAgent/inline/amazon_linux.template)  
-[Dashboard Body Structure](https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/CloudWatch-Dashboard-Body-Structure.html)
+- [Install CloudWatch Agent](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Install-CloudWatch-Agent.html)  
+- [Metrics collected by the CloudWatch agent on Linux instances](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/metrics-collected-by-CloudWatch-agent.html#linux-metrics-enabled-by-CloudWatch-agent)  
+- [Inline CloudFormation Template](https://github.com/awslabs/aws-cloudformation-templates/blob/master/aws/solutions/AmazonCloudWatchAgent/inline/amazon_linux.template)  
+- [Dashboard Body Structure](https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/CloudWatch-Dashboard-Body-Structure.html)
+- [AWS::AutoScaling::AutoScalingGroup](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-as-group.html)
+- [AWS::AutoScaling::ScalingPolicy](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-autoscaling-scalingpolicy.html)
