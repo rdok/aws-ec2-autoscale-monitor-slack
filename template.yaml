@@ -157,28 +157,51 @@ Resources:
       DesiredCapacity: 2
       VPCZoneIdentifier: [ !Ref Subnet1a, !Ref Subnet1b ]
       Tags: [ { Key: Name, Value: !Ref AWS::StackName, PropagateAtLaunch: true } ]
-#  CPUUtilizationAlarm:
+  IncreaseCapacityDueToHighCPUUtilizationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn"
+        - !Ref IncreaseCapacityScalingPolicy
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 70
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions: [ { Name: AutoScalingGroupName, Value: !Ref AutoScalingGroup } ]
+  DecreaseCapacityDueToLowCPUAndMemoryUtilizationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn"
+        - !Ref DecreaseCapacityScalingPolicy
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 40
+      ComparisonOperator: LessThanThreshold
+      Dimensions: [ { Name: AutoScalingGroupName, Value: !Ref AutoScalingGroup } ]
+  IncreaseCapacityScalingPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      PolicyType: SimpleScaling
+      AdjustmentType: ChangeInCapacity
+      ScalingAdjustment: 1
+  DecreaseCapacityScalingPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      PolicyType: SimpleScaling
+      AdjustmentType: ChangeInCapacity
+      ScalingAdjustment: -1
+#  MemoryHighUtilizationAlarm:
 #    Type: AWS::CloudWatch::Alarm
 #    Properties:
-#      AlarmDescription: >
-#        Alert when the average CPU utilization exceeds 90 percent for 1 minute
-#        over one evaluation period.
-#      AlarmActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
-#      OKActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
-#      MetricName: CPUUtilization
-#      Namespace: AWS/EC2
-#      Statistic: Average
-#      Period: '60'
-#      EvaluationPeriods: '1'
-#      Threshold: '80'
-#      ComparisonOperator: GreaterThanThreshold
-#      Dimensions: [ { Name: InstanceId, Value: !Ref LaunchConfiguration } ]
-#  MemoryUtilizationAlarm:
-#    Type: AWS::CloudWatch::Alarm
-#    Properties:
-#      AlarmDescription: >
-#        Alert when the memory utilization percentage exceeds a threshold for an amount of time
-#        over an amount of period(s).
 #      AlarmActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
 #      OKActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
 #      Namespace: CWAgent
@@ -189,27 +212,24 @@ Resources:
 #      Threshold: '80'
 #      ComparisonOperator: GreaterThanThreshold
 #      Dimensions:
-#        - { Name: InstanceId, Value: !Ref LaunchConfiguration }
+#        - { Name: AutoScalingGroupName, Value: !Ref AutoScalingGroup }
 #        - { Name: ImageId, Value: !Ref ImageId }
 #        - { Name: InstanceType, Value: !Ref InstanceType }
-#  DiskUtilizationAlarm:
+#  DiskHighUtilizationAlarm:
 #    Type: AWS::CloudWatch::Alarm
 #    Properties:
-#      AlarmDescription: >
-#        Alert when the disk utilization percentage exceeds a threshold for an amount of time
-#        over an amount of period(s).
 #      AlarmActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
 #      OKActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
 #      Namespace: CWAgent
 #      MetricName: disk_used_percent
 #      Statistic: Average
-#      Period: '60'
-#      EvaluationPeriods: '1'
-#      Threshold: '80'
+#      Period: 60
+#      EvaluationPeriods: 1
+#      Threshold: 80
 #      ComparisonOperator: GreaterThanThreshold
 #      Dimensions:
 #        - { Name: path, Value: '/' }
-#        - { Name: InstanceId, Value: !Ref AutoScalingGroup }
+#        - { Name: AutoScalingGroupName, Value: !Ref AutoScalingGroup }
 #        - { Name: ImageId, Value: !Ref ImageId }
 #        - { Name: InstanceType, Value: !Ref InstanceType }
 #        - { Name: device, Value: nvme0n1p1 }
