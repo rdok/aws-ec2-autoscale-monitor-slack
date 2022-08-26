@@ -247,43 +247,37 @@ Resources:
         - { Name: InstanceType, Value: !Ref InstanceType }
         - { Name: device, Value: nvme0n1p1 }
         - { Name: fstype, Value: xfs }
-#  UtilizationDashboard:
-#    Type: AWS::CloudWatch::Dashboard
-#    Properties:
-#      # https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/CloudWatch-Dashboard-Body-Structure.html
-#      DashboardBody: !Sub |
-#        {
-#           "widgets": [
-#              {
-#                 "type":"metric",
-#                 "width":24,
-#                 "height":8,
-#                 "properties":{
-#                    "metrics":[
-#                      [ "AWS/EC2", "CPUUtilization", "AutoScalingGroupName", "${AutoScalingGroup}", {"label": "CPU Utilization"} ],
-#                      [
-#                        "CWAgent", "mem_used_percent",
-#                        "AutoScalingGroupName", "${AutoScalingGroup}" ,
-#                        {"label": "Memory Used Percent" }
-#                      ]
-#                    ],
-#                    "period":300,
-#                    "stat":"Average",
-#                    "region":"${AWS::Region}",
-#                    "title":"${Name}",
-#                    "liveData": false
-#                 }
-#              }
-#           ]
-#        }
-#
-#Outputs:
-#  Dashboard:
-#    Description: "Can take up to 10 minutes to load data on first run."
-#    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${UtilizationDashboard}"
-#  DiskUtilizationAlarm:
-#    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#alarmsV2:alarm/${DiskUtilizationAlarm}"
-#  MemoryUtilizationAlarm:
-#    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#alarmsV2:alarm/${MemoryUtilizationAlarm}"
-#  CPUUtilizationAlarm:
-#    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#alarmsV2:alarm/${CPUUtilizationAlarm}"
+  UtilizationDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      # https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/CloudWatch-Dashboard-Body-Structure.html
+      DashboardBody: !Sub |
+        {
+           "widgets": [
+              {
+                 "type":"metric",
+                 "width":24,
+                 "height":8,
+                 "properties":{
+                    "metrics":[
+                      [ "AWS/EC2", "CPUUtilization", "AutoScalingGroupName", "${AutoScalingGroup}", {"label": "CPU Utilization"} ],
+                      [
+                        "CWAgent", "mem_used_percent",
+                        "AutoScalingGroupName", "${AutoScalingGroup}" ,
+                        {"label": "Memory Used Percent" }
+                      ]
+                    ],
+                    "period":300,
+                    "stat":"Average",
+                    "region":"${AWS::Region}",
+                    "title":"${Name}",
+                    "liveData": false
+                 }
+              }
+           ]
+        }
+
+Outputs:
+  Dashboard:
+    Description: "Can take up to 10 minutes to load data on first run."
+    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${UtilizationDashboard}"
