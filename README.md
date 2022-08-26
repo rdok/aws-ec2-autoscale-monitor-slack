@@ -34,7 +34,7 @@ The EC2 password is set to `secret` from the `UserData`. This is set ONLY for de
 ![slack](./slack.png "Slack")
 
 ## Development
-- `make samconfig.toml` && customise as per you needs
+- `make samconfig.toml` Customise as per you needs. Requires [AWS::Chatbot::SlackChannelConfiguration](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-chatbot-slackchannelconfiguration.html) from a different stack.
 - `make deploy`
 
 ## Sources
