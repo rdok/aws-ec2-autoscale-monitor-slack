@@ -93,7 +93,7 @@ Resources:
                 {
                   "metrics": {
                     "append_dimensions": {
-                      "AutoScalingGroupName": "${!aws:AutoScalingGroup}",
+                      "AutoScalingGroupName": "${!aws:AutoScalingGroupName}",
                       "ImageId": "${!aws:ImageId}",
                       "InstanceId": "${!aws:InstanceId}",
                       "InstanceType": "${!aws:InstanceType}"
@@ -101,7 +101,8 @@ Resources:
                     "metrics_collected": {
                       "mem": { "measurement": [ "mem_used_percent" ] },
                       "disk": { "measurement": [ "disk_used_percent" ] }
-                    }
+                    },
+                    "aggregation_dimensions" : [["AutoScalingGroupName"], ["InstanceId", "InstanceType"]]
                   }
                 }
         03_restart_amazon-cloudwatch-agent:
@@ -168,7 +169,7 @@ Resources:
       Statistic: Average
       Period: 60
       EvaluationPeriods: 1
-      Threshold: 70
+      Threshold: 80
       ComparisonOperator: GreaterThanThreshold
       Dimensions: [ { Name: AutoScalingGroupName, Value: !Ref AutoScalingGroup } ]
   DecreaseCapacityDueToLowCPUAndMemoryUtilizationAlarm:
@@ -199,41 +200,53 @@ Resources:
       PolicyType: SimpleScaling
       AdjustmentType: ChangeInCapacity
       ScalingAdjustment: -1
-#  MemoryHighUtilizationAlarm:
-#    Type: AWS::CloudWatch::Alarm
-#    Properties:
-#      AlarmActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
-#      OKActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
-#      Namespace: CWAgent
-#      MetricName: mem_used_percent
-#      Statistic: Average
-#      Period: '60'
-#      EvaluationPeriods: '1'
-#      Threshold: '80'
-#      ComparisonOperator: GreaterThanThreshold
-#      Dimensions:
-#        - { Name: AutoScalingGroupName, Value: !Ref AutoScalingGroup }
-#        - { Name: ImageId, Value: !Ref ImageId }
-#        - { Name: InstanceType, Value: !Ref InstanceType }
-#  DiskHighUtilizationAlarm:
-#    Type: AWS::CloudWatch::Alarm
-#    Properties:
-#      AlarmActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
-#      OKActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
-#      Namespace: CWAgent
-#      MetricName: disk_used_percent
-#      Statistic: Average
-#      Period: 60
-#      EvaluationPeriods: 1
-#      Threshold: 80
-#      ComparisonOperator: GreaterThanThreshold
-#      Dimensions:
-#        - { Name: path, Value: '/' }
-#        - { Name: AutoScalingGroupName, Value: !Ref AutoScalingGroup }
-#        - { Name: ImageId, Value: !Ref ImageId }
-#        - { Name: InstanceType, Value: !Ref InstanceType }
-#        - { Name: device, Value: nvme0n1p1 }
-#        - { Name: fstype, Value: xfs }
+  IncreaseCapacityDueToHighMemoryUtilizationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn"
+        - !Ref IncreaseCapacityScalingPolicy
+      Namespace: CWAgent
+      MetricName: mem_used_percent
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions: [ { Name: AutoScalingGroupName, Value: !Ref AutoScalingGroup } ]
+  DecreaseCapacityDueToLowMemoryUtilizationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn"
+        - !Ref DecreaseCapacityScalingPolicy
+      Namespace: CWAgent
+      MetricName: mem_used_percent
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 40
+      ComparisonOperator: LessThanThreshold
+      Dimensions: [ { Name: AutoScalingGroupName, Value: !Ref AutoScalingGroup } ]
+  DiskHighUtilizationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
+      OKActions: [ Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn" ]
+      Namespace: CWAgent
+      MetricName: disk_used_percent
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - { Name: path, Value: '/' }
+        - { Name: AutoScalingGroupName, Value: !Ref AutoScalingGroup }
+        - { Name: ImageId, Value: !Ref ImageId }
+        - { Name: InstanceType, Value: !Ref InstanceType }
+        - { Name: device, Value: nvme0n1p1 }
+        - { Name: fstype, Value: xfs }
 #  UtilizationDashboard:
 #    Type: AWS::CloudWatch::Dashboard
 #    Properties:
@@ -247,23 +260,11 @@ Resources:
 #                 "height":8,
 #                 "properties":{
 #                    "metrics":[
-#                      [ "AWS/EC2", "CPUUtilization", "InstanceId", "${LaunchConfiguration}", {"label": "CPU Utilization"} ],
+#                      [ "AWS/EC2", "CPUUtilization", "AutoScalingGroupName", "${AutoScalingGroup}", {"label": "CPU Utilization"} ],
 #                      [
 #                        "CWAgent", "mem_used_percent",
-#                        "InstanceId", "${LaunchConfiguration}" ,
-#                        "ImageId", "${ImageId}",
-#                        "InstanceType", "${InstanceType}",
+#                        "AutoScalingGroupName", "${AutoScalingGroup}" ,
 #                        {"label": "Memory Used Percent" }
-#                      ],
-#                      [
-#                        "CWAgent", "disk_used_percent",
-#                        "path", "/" ,
-#                        "InstanceId", "${LaunchConfiguration}",
-#                        "ImageId", "${ImageId}",
-#                        "InstanceType", "${InstanceType}",
-#                        "device", "nvme0n1p1",
-#                        "fstype", "xfs",
-#                        {"label": "Disk Used Percent" }
 #                      ]
 #                    ],
 #                    "period":300,
