@@ -4,7 +4,9 @@
 > 3. Auto increase EC2 desired capacity, through CloudWatch alarm, when CPU **OR** memory utilisation is greater than a threshold.
 > 4. Auto decrease EC2 desired capacity, through CloudWatch alarm, when CPU **AND** memory utilisation is lower than a threshold.
 
-![dashboard](./dashboard.png "Dashboard")
+![dashboard](./dashboard.png "Dashboard")  
+![auto-scale](./auto-scale.png "Auto-scale")  
+![slack](./slack.png "Slack")
 
 ## Stress Test
 ```sh
@@ -29,9 +31,6 @@ df -h
 - Use the EC2 serial console to connect the instance.
 
 The EC2 password is set to `secret` from the `UserData`. This is set ONLY for debugging purposes, so do we remove this command before using it on production.
-
-## Slack
-![slack](./slack.png "Slack")
 
 ## Development
 - `make samconfig.toml` Customise as per you needs. Requires [AWS::Chatbot::SlackChannelConfiguration](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-chatbot-slackchannelconfiguration.html) from a different stack.
