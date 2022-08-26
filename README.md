@@ -16,6 +16,9 @@ sudo yum install -y stress htop
 
 # CPU, and memory stress. t3.medium 2 CPU, 4GB memory
 sudo stress --cpu 2 --vm-bytes $(awk '/MemAvailable/{printf "%d\n", $2 * 0.9;}' < /proc/meminfo)k --vm-keep -m 5
+
+# Memory stress. t3.medium CPU, 4GB memory
+sudo stress --vm-bytes $(awk '/MemAvailable/{printf "%d\n", $2 * 0.9;}' < /proc/meminfo)k --vm-keep -m 5
  
  # Disk utilization. 8GB disk
 df -h

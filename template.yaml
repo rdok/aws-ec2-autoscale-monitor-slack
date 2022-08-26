@@ -178,14 +178,32 @@ Resources:
       AlarmActions:
         - Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn"
         - !Ref DecreaseCapacityScalingPolicy
-      MetricName: CPUUtilization
-      Namespace: AWS/EC2
-      Statistic: Average
-      Period: 60
+      ComparisonOperator: LessThanThreshold
       EvaluationPeriods: 1
       Threshold: 40
-      ComparisonOperator: LessThanThreshold
-      Dimensions: [ { Name: AutoScalingGroupName, Value: !Ref AutoScalingGroup } ]
+      Metrics:
+        - Expression: MAX([cu2, mu3])
+          Id: am1
+          Period: 60
+          ReturnData: true
+        - Id: cu2
+          ReturnData: false
+          MetricStat:
+            Period: 60
+            Stat: Average
+            Metric:
+              MetricName: CPUUtilization
+              Namespace: AWS/EC2
+              Dimensions: [ { Name: AutoScalingGroupName, Value: !Ref AutoScalingGroup } ]
+        - Id: mu3
+          ReturnData: false
+          MetricStat:
+            Period: 60
+            Stat: Average
+            Metric:
+              MetricName: mem_used_percent
+              Namespace: CWAgent
+              Dimensions: [ { Name: AutoScalingGroupName, Value: !Ref AutoScalingGroup } ]
   IncreaseCapacityScalingPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
@@ -213,20 +231,6 @@ Resources:
       EvaluationPeriods: 1
       Threshold: 80
       ComparisonOperator: GreaterThanThreshold
-      Dimensions: [ { Name: AutoScalingGroupName, Value: !Ref AutoScalingGroup } ]
-  DecreaseCapacityDueToLowMemoryUtilizationAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmActions:
-        - Fn::ImportValue: !Sub "${AwsChatbotStackName}-ErrorsListenerArn"
-        - !Ref DecreaseCapacityScalingPolicy
-      Namespace: CWAgent
-      MetricName: mem_used_percent
-      Statistic: Average
-      Period: 60
-      EvaluationPeriods: 1
-      Threshold: 40
-      ComparisonOperator: LessThanThreshold
       Dimensions: [ { Name: AutoScalingGroupName, Value: !Ref AutoScalingGroup } ]
   DiskHighUtilizationAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -260,11 +264,11 @@ Resources:
                  "height":8,
                  "properties":{
                     "metrics":[
-                      [ "AWS/EC2", "CPUUtilization", "AutoScalingGroupName", "${AutoScalingGroup}", {"label": "CPU Utilization"} ],
+                      [ "AWS/EC2", "CPUUtilization", "AutoScalingGroupName", "${AutoScalingGroup}", {"label": "CPU Utilization - ASG"} ],
                       [
                         "CWAgent", "mem_used_percent",
                         "AutoScalingGroupName", "${AutoScalingGroup}" ,
-                        {"label": "Memory Used Percent" }
+                        {"label": "Memory Utilization - ASG" }
                       ]
                     ],
                     "period":300,
