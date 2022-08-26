@@ -1,8 +1,8 @@
 # Monitor memory, disk, and CPU utilization. Auto-scale.
 > 1. Monitor EC2 memory, disk, and CPU utilization using CloudWatch agent. 
 > 2. Create dashboard with the metrics, and alert through slack when any alarm goes in alert status.
-> 3. Auto increase EC2 desired capacity, through CloudWatch alarm, when CPU **OR** memory utilisation is greater than a threshold.
-> 4. Auto decrease EC2 desired capacity, through CloudWatch alarm, when CPU **AND** memory utilisation is lower than a threshold.
+> 3. Auto increase EC2 desired capacity, when CPU **OR** memory utilisation is greater than a threshold.
+> 4. Auto decrease EC2 desired capacity, when CPU **AND** memory utilisation is lower than a threshold.
 
 ![dashboard](./dashboard.png "Dashboard")  
 ![auto-scale](./auto-scale.png "Auto-scale")  
